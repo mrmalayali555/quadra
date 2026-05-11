@@ -48,6 +48,7 @@ export async function readData() {
 
 export async function writeData(data) {
   try {
+    console.log('📤 Attempting to write to JSONBin...', { colleges: data.colleges?.length, sports: data.sports?.length, matches: data.matches?.length })
     const res = await fetch(BASE_URL, {
       method: 'PUT',
       headers: {
@@ -56,12 +57,18 @@ export async function writeData(data) {
       },
       body: JSON.stringify(data)
     })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return await res.json()
+    
+    if (!res.ok) {
+      const errorText = await res.text()
+      throw new Error(`HTTP ${res.status}: ${errorText}`)
+    }
+    
+    const result = await res.json()
+    console.log('✅ Successfully written to JSONBin')
+    return result
   } catch (error) {
-    console.warn('Failed to write to JSONBin (will retry), data cached locally:', error.message)
-    // Data is already cached locally in mockAxios, so this is not critical
-    return null
+    console.error('❌ CRITICAL: Failed to write to JSONBin:', error.message)
+    throw error // Re-throw so we know it failed
   }
 }
 
