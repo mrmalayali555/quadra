@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "QUADRA 5.0 - Intercollegiate Sports Tournament Management System",
   "scripts": {
-      "build": "cd client && npm install && npm run build && cd .. && rm -rf public && cp -r client/dist public",
+    "build": "cd client && npm install && npm run build && cd .. && rm -rf public && cp -r client/dist public",
     "dev": "cd client && npm run dev"
   },
-  "private": true,
+  "private": true
 }
 
 
