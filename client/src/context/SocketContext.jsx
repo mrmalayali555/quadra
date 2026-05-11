@@ -1,14 +1,18 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
-import { io } from 'socket.io-client'
+
+let io = null
+try {
+  io = require('socket.io-client').io
+} catch (e) {
+  console.warn('Socket.io-client not available')
+}
 
 const SocketContext = createContext(null)
 
 export const useSocket = () => {
   const context = useContext(SocketContext)
-  if (!context) {
-    throw new Error('useSocket must be used within SocketProvider')
-  }
-  return context
+  // Return a safe default if context is not available
+  return context || { socket: null, isConnected: false, adminToken: null }
 }
 
 export const SocketProvider = ({ children }) => {
@@ -18,6 +22,12 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null)
 
   useEffect(() => {
+    // Only initialize Socket if io is available 
+    if (!io) {
+      console.warn('Socket.io-client not available - running in offline mode')
+      return
+    }
+
     try {
       const token = localStorage.getItem('adminToken')
       const newSocket = io(window.location.origin, {
@@ -26,7 +36,7 @@ export const SocketProvider = ({ children }) => {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        reconnectionAttempts: 3
+        reconnectionAttempts: 2  // Reduced from 3 to fail faster
       })
 
       newSocket.on('connect', () => {
@@ -40,7 +50,7 @@ export const SocketProvider = ({ children }) => {
       })
 
       newSocket.on('connect_error', (error) => {
-        console.warn('Socket connection error:', error.message)
+        console.warn('Socket connection error:', error?.message || error)
         setIsConnected(false)
       })
 
@@ -49,14 +59,15 @@ export const SocketProvider = ({ children }) => {
 
       return () => {
         try {
-          newSocket.close()
+          newSocket.disconnect()
         } catch (e) {
-          console.warn('Error closing socket:', e.message)
+          console.warn('Error disconnecting socket:', e.message)
         }
       }
     } catch (e) {
-      console.error('Failed to initialize Socket.io:', e.message)
+      console.warn('Failed to initialize Socket.io:', e.message)
       setIsConnected(false)
+      // Don't throw - let app continue without socket
     }
   }, []) // run once on mount
 
