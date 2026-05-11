@@ -1,0 +1,38 @@
+{
+  "public": "public",
+  "cleanUrls": true, 
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    }
+  ]
+}
+{
+  "buildCommand": "cd client && npm install && npm run build && cd .. && rm -rf public && cp -r client/dist public"
+}
+
+
+
+{
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
+}
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "client/dist"
+}
