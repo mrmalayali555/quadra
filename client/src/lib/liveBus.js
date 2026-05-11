@@ -75,6 +75,7 @@ export function createMockSocket() {
     disconnect() {
       this.connected = false
       publishLiveEvent('disconnect')
+      return this
     },
     connect() {
       this.connected = true
@@ -82,7 +83,7 @@ export function createMockSocket() {
       return this
     },
     close() {
-      this.disconnect()
+      return this.disconnect()
     },
   }
 
