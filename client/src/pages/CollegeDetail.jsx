@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { format } from 'date-fns'
 
+const asArray = (value) => (Array.isArray(value) ? value : [])
+
 const sportIcons = {
   football: '⚽', cricket: '🏏', basketball: '🏀', badminton: '🏸',
   volleyball: '🏐', 'kho-kho': '🏃', 'table-tennis': '🏓', chess: '♟️',
@@ -22,10 +24,12 @@ export default function CollegeDetail() {
           axios.get('/api/colleges'),
           axios.get('/api/matches'),
         ])
-        const found = collegesRes.data.find(c => String(c.id) === String(id))
+        const collegesData = asArray(collegesRes.data)
+        const matchesData = asArray(matchesRes.data)
+        const found = collegesData.find(c => String(c.id) === String(id))
         setCollege(found || null)
         // Only matches this college participated in
-        const myMatches = matchesRes.data.filter(
+        const myMatches = matchesData.filter(
           m => String(m.team_a_id) === String(id) || String(m.team_b_id) === String(id)
         )
         setMatches(myMatches)

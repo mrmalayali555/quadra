@@ -18,13 +18,15 @@ const statusColors = {
   completed: 'bg-green-600',
 }
 
+const asArray = (value) => (Array.isArray(value) ? value : [])
+
 // ── Sports Hub (no sportId selected) ──────────────────────
 function SportsHub() {
   const [sports, setSports] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    axios.get('/api/sports').then(r => setSports(r.data)).finally(() => setLoading(false))
+    axios.get('/api/sports').then(r => setSports(asArray(r.data))).finally(() => setLoading(false))
   }, [])
 
   return (
@@ -72,7 +74,7 @@ function SportDetail({ sportId }) {
   const fetchMatches = async () => {
     try {
       const res = await axios.get(`/api/matches?sport=${sportId}`)
-      setMatches(res.data)
+      setMatches(asArray(res.data))
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
@@ -80,7 +82,8 @@ function SportDetail({ sportId }) {
   useEffect(() => {
     setLoading(true)
     axios.get('/api/sports').then(res => {
-      setSport(res.data.find(s => s.id === sportId) || null)
+      const sportsData = asArray(res.data)
+      setSport(sportsData.find(s => s.id === sportId) || null)
     })
     fetchMatches()
   }, [sportId])

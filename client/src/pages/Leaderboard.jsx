@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 
+const asArray = (value) => (Array.isArray(value) ? value : [])
+
 export default function Leaderboard() {
   const [leaderboard, setLeaderboard] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,7 +18,7 @@ export default function Leaderboard() {
         ? '/api/leaderboard/overall'
         : `/api/leaderboard?gender=${selectedGender}`
       const res = await axios.get(endpoint)
-      setLeaderboard(res.data)
+      setLeaderboard(asArray(res.data))
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }

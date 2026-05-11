@@ -17,6 +17,8 @@ const SPORT_COLORS = [
   'from-sky-500 to-cyan-600',
 ]
 
+const asArray = (value) => (Array.isArray(value) ? value : [])
+
 export default function Home() {
   const heroRef  = useRef(null)
   const vantaRef = useRef(null)
@@ -69,9 +71,9 @@ export default function Home() {
         axios.get('/api/matches?status=live').catch(() => ({ data: [] })),
         axios.get('/api/sports').catch(() => ({ data: [] })),
       ])
-      setLeaderboard((lb.data || []).slice(0, 5))
-      setLiveMatches(live.data || [])
-      setSports(sp.data || [])
+      setLeaderboard(asArray(lb.data).slice(0, 5))
+      setLiveMatches(asArray(live.data))
+      setSports(asArray(sp.data))
     } catch (e) { 
       console.warn('Failed to fetch data:', e.message)
     }
@@ -87,7 +89,7 @@ export default function Home() {
     const onLb       = async () => { 
       try { 
         const r = await axios.get('/api/leaderboard/overall')
-        setLeaderboard((r.data || []).slice(0, 5))
+        setLeaderboard(asArray(r.data).slice(0, 5))
       } catch (e) {
         console.warn('Leaderboard update failed:', e.message)
       }
