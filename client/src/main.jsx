@@ -5,12 +5,13 @@ import './index.css'
 import { ThemeProvider } from './context/ThemeContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import axios from 'axios'
+import { getItem } from './lib/safeStorage.js'
 
 // Configure axios with timeout
 axios.defaults.timeout = 5000
 
 // Apply saved theme before first paint to avoid flash
-const saved = localStorage.getItem('theme') ?? 'dark'
+const saved = getItem('theme') ?? 'dark'
 document.documentElement.classList.add(saved)
 
 ReactDOM.createRoot(document.getElementById('root')).render(

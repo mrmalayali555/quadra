@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { getItem, setItem } from '../lib/safeStorage.js'
 
 const ThemeContext = createContext(null)
 
@@ -6,7 +7,7 @@ export const useTheme = () => useContext(ThemeContext)
 
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('theme')
+    const saved = getItem('theme')
     return saved ? saved === 'dark' : true // default dark
   })
 
@@ -19,7 +20,7 @@ export function ThemeProvider({ children }) {
       root.classList.add('light')
       root.classList.remove('dark')
     }
-    localStorage.setItem('theme', dark ? 'dark' : 'light')
+    setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
 
   return (

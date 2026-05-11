@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
+import { getItem, setItem, removeItem } from '../lib/safeStorage.js'
 
 let io = null
 try {
@@ -18,7 +19,7 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
-  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'))
+  const [adminToken, setAdminToken] = useState(getItem('adminToken'))
   const socketRef = useRef(null)
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     try {
-      const token = localStorage.getItem('adminToken')
+      const token = getItem('adminToken')
       const newSocket = io(window.location.origin, {
         auth: { token },
         transports: ['websocket', 'polling'],
@@ -82,12 +83,12 @@ export const SocketProvider = ({ children }) => {
   }, [adminToken])
 
   const authenticateAdmin = useCallback((token) => {
-    localStorage.setItem('adminToken', token)
+    setItem('adminToken', token)
     setAdminToken(token)
   }, [])
 
   const logoutAdmin = useCallback(() => {
-    localStorage.removeItem('adminToken')
+    removeItem('adminToken')
     setAdminToken(null)
   }, [])
 

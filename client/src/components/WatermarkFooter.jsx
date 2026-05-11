@@ -8,8 +8,7 @@ export default function WatermarkFooter() {
         className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium transition-colors hover:opacity-90"
         style={{ color: 'var(--text-muted)' }}
       >
-        <span style={{ color: 'var(--accent)' }}>Web Developer:</span>
-        <span>Justin James</span>
+        <span style={{ color: 'var(--accent)' }}>Developed by Justin</span>
       </a>
     </div>
   )

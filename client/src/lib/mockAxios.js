@@ -1,4 +1,5 @@
 import { ADMIN_PASSWORD, buildLeaderboard, cloneSeedData } from '../data/seedData.js'
+import { getItem, setItem, removeItem } from './safeStorage.js'
 
 const STORAGE_KEY = 'quadra.mock.db.v1'
 const defaults = { timeout: 0 }
@@ -12,12 +13,8 @@ function getInitialState() {
 }
 
 function readState() {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return getInitialState()
-  }
-
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = getItem(STORAGE_KEY)
     if (!raw) return getInitialState()
     const parsed = JSON.parse(raw)
     return {
@@ -32,12 +29,7 @@ function readState() {
 }
 
 function saveState(state) {
-  if (typeof window === 'undefined' || !window.localStorage) return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-}
-
-function toResponse(data) {
-  return Promise.resolve({ data })
+  setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
 function makeError(status, message) {
@@ -111,14 +103,13 @@ function handleGet(state, url) {
     return { status: 200, data: sortMatches(filtered) }
   }
   if (path.startsWith('/api/matches/')) {
-    const parts = path.split('/')
-    const id = parts[3]
+    const id = path.split('/')[3]
     const match = state.matches.find(item => String(item.id) === String(id))
     if (!match) throw makeError(404, 'Match not found')
     return { status: 200, data: withTeamNames(state, match) }
   }
   if (path === '/api/admin/verify') {
-    const token = ''
+    const token = getItem('adminToken') || ''
     const valid = state.sessions.includes(token)
     return { status: valid ? 200 : 401, data: valid ? { valid: true } : { error: 'Invalid or expired token' } }
   }
@@ -133,6 +124,7 @@ function handlePost(state, url, body) {
     if (body?.password === ADMIN_PASSWORD) {
       const token = `mock-admin-${Date.now()}-${Math.random().toString(16).slice(2)}`
       state.sessions.push(token)
+      setItem('adminToken', token)
       saveState(state)
       return { status: 200, data: { token, success: true } }
     }
@@ -140,6 +132,7 @@ function handlePost(state, url, body) {
   }
 
   if (path === '/api/admin/logout') {
+    removeItem('adminToken')
     saveState(state)
     return { status: 200, data: { success: true } }
   }
@@ -161,7 +154,7 @@ function handlePost(state, url, body) {
       name: body.name,
       icon: body.icon || '🏆',
       description: body.description || '',
-      sort_order: (state.sports.reduce((max, item) => Math.max(max, Number(item.sort_order) || 0), 0) + 1),
+      sort_order: state.sports.reduce((max, item) => Math.max(max, Number(item.sort_order) || 0), 0) + 1,
     }
     state.sports.push(sport)
     saveState(state)
@@ -288,10 +281,10 @@ async function request(method, url, body) {
   const state = normalizeState(readState())
 
   try {
-    if (method === 'GET') return await toResponse(handleGet(state, url).data)
-    if (method === 'POST') return await toResponse(handlePost(state, url, body).data)
-    if (method === 'PUT') return await toResponse(handlePut(state, url, body).data)
-    if (method === 'DELETE') return await toResponse(handleDelete(state, url).data)
+    if (method === 'GET') return { data: handleGet(state, url).data }
+    if (method === 'POST') return { data: handlePost(state, url, body).data }
+    if (method === 'PUT') return { data: handlePut(state, url, body).data }
+    if (method === 'DELETE') return { data: handleDelete(state, url).data }
     throw makeError(405, 'Method not allowed')
   } catch (error) {
     if (error.response) throw error
