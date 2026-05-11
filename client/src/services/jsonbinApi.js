@@ -1,24 +1,16 @@
-// JSONBin API service for cloud-based tournament data
-// Falls back to public/data.json if JSONBin is unavailable
+// Remote data service for cloud-backed tournament data
+// Primary source: Vercel serverless endpoint /api/data
 import { publishLiveEvent } from '../lib/liveBus.js'
 
-const BIN_ID = '6a01c00dc0954111d8089ce6'
-const API_KEY = '$2a$10$aVVXJLfwVHRdoYzQmToZeuLlqZAd7PSBab5EuaxfPS3uZxLTxCE3K'
-const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`
+const DATA_API_URL = '/api/data'
 
-export async function readDataFromJSONBin() {
+export async function readDataFromRemote() {
   try {
-    const res = await fetch(BASE_URL, {
-      headers: {
-        'X-Master-Key': API_KEY,
-        'Content-Type': 'application/json'
-      }
-    })
+    const res = await fetch(DATA_API_URL)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    return data.record || {}
+    return await res.json()
   } catch (error) {
-    console.warn('JSONBin unavailable, falling back to data.json:', error.message)
+    console.warn('Remote API unavailable, falling back to data.json:', error.message)
     return null
   }
 }
@@ -35,9 +27,9 @@ export async function readDataFromLocal() {
 }
 
 export async function readData() {
-  // Try JSONBin first, then fall back to local data.json
-  const jsonbinData = await readDataFromJSONBin()
-  if (jsonbinData) return jsonbinData
+  // Try remote API first, then fall back to local data.json
+  const remoteData = await readDataFromRemote()
+  if (remoteData) return remoteData
   
   const localData = await readDataFromLocal()
   if (localData) return localData
@@ -48,12 +40,11 @@ export async function readData() {
 
 export async function writeData(data) {
   try {
-    console.log('📤 Attempting to write to JSONBin...', { colleges: data.colleges?.length, sports: data.sports?.length, matches: data.matches?.length })
-    const res = await fetch(BASE_URL, {
+    console.log('Attempting to write remote data...', { colleges: data.colleges?.length, sports: data.sports?.length, matches: data.matches?.length })
+    const res = await fetch(DATA_API_URL, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(data)
     })
@@ -63,12 +54,10 @@ export async function writeData(data) {
       throw new Error(`HTTP ${res.status}: ${errorText}`)
     }
     
-    const result = await res.json()
-    console.log('✅ Successfully written to JSONBin')
-    return result
+    return await res.json()
   } catch (error) {
-    console.error('❌ CRITICAL: Failed to write to JSONBin:', error.message)
-    throw error // Re-throw so we know it failed
+    console.error('Failed to write remote data:', error.message)
+    throw error
   }
 }
 

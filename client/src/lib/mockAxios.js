@@ -22,7 +22,7 @@ async function initializeState() {
   
   initPromise = (async () => {
     try {
-      console.log('🔄 Initializing state from JSONBin...')
+      console.log('Initializing state from remote data service...')
       const data = await readData()
       
       if (data && data.colleges && data.sports && data.matches) {
@@ -32,13 +32,13 @@ async function initializeState() {
           matches: Array.isArray(data.matches) ? data.matches : getInitialState().matches,
           sessions: Array.isArray(data.sessions) ? data.sessions : [],
         }
-        console.log('✅ State initialized from JSONBin:', { sports: cachedState.sports.length, matches: cachedState.matches.length })
+        console.log('State initialized:', { sports: cachedState.sports.length, matches: cachedState.matches.length })
       } else {
         console.log('⚠️ JSONBin empty, using seed data')
         cachedState = getInitialState()
       }
     } catch (error) {
-      console.error('❌ Failed to initialize from JSONBin:', error.message)
+      console.error('Failed to initialize remote data:', error.message)
       cachedState = getInitialState()
     }
     
@@ -57,7 +57,7 @@ async function readState() {
   
   try {
     // Try to fetch latest from cloud
-    console.log('📖 Fetching latest data from JSONBin...')
+    console.log('Fetching latest remote data...')
     const data = await readData()
     
     if (data && data.colleges && data.sports && data.matches) {
@@ -67,11 +67,11 @@ async function readState() {
         matches: Array.isArray(data.matches) ? data.matches : cachedState?.matches || getInitialState().matches,
         sessions: Array.isArray(data.sessions) ? data.sessions : [],
       }
-      console.log('✅ Updated cache from cloud')
+      console.log('Updated cache from remote data')
       return cachedState
     }
   } catch (error) {
-    console.warn('⚠️ Cloud fetch failed, using cache:', error.message)
+    console.warn('Remote fetch failed, using cache:', error.message)
   }
   
   return cachedState || getInitialState()
@@ -89,16 +89,16 @@ async function saveState(state) {
       sessions: state.sessions || [],
     }
     
-    console.log('💾 Saving to JSONBin:', { sports: dataToSave.sports.length, matches: dataToSave.matches.length })
+    console.log('Saving remote data:', { sports: dataToSave.sports.length, matches: dataToSave.matches.length })
     const result = await writeData(dataToSave)
-    console.log('✔️ Save to JSONBin successful!')
+    console.log('Remote save successful')
     
     // Broadcast so other pages/devices detect change
     publishLiveEvent('data-updated', dataToSave)
     
     return result
   } catch (error) {
-    console.error('❌ SAVE FAILED:', error.message)
+    console.error('Remote save failed:', error.message)
     // Data is still in cache, but cloud wasn't updated
     throw error
   }
