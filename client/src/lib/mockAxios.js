@@ -1,5 +1,6 @@
 import { ADMIN_PASSWORD, buildLeaderboard, cloneSeedData } from '../data/seedData.js'
 import { getItem, setItem, removeItem } from './safeStorage.js'
+import { publishLiveEvent } from './liveBus.js'
 
 const STORAGE_KEY = 'quadra.mock.db.v1'
 const defaults = { timeout: 0 }
@@ -145,6 +146,7 @@ function handlePost(state, url, body) {
     }
     state.colleges.push(college)
     saveState(state)
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: college }
   }
 
@@ -158,6 +160,8 @@ function handlePost(state, url, body) {
     }
     state.sports.push(sport)
     saveState(state)
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: sport }
   }
 
@@ -180,6 +184,8 @@ function handlePost(state, url, body) {
     }
     state.matches.push(match)
     saveState(state)
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: withTeamNames(state, match) }
   }
 
@@ -190,6 +196,9 @@ function handlePost(state, url, body) {
     match.score_a = Number(body.score_a || 0)
     match.score_b = Number(body.score_b || 0)
     saveState(state)
+    publishLiveEvent('score-updated', withTeamNames(state, match))
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: withTeamNames(state, match) }
   }
 
@@ -200,6 +209,9 @@ function handlePost(state, url, body) {
     match.status = body.status || match.status
     match.winner_id = body.winner_id ?? null
     saveState(state)
+    publishLiveEvent('status-updated', withTeamNames(state, match))
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: withTeamNames(state, match) }
   }
 
@@ -216,6 +228,8 @@ function handlePut(state, url, body) {
     college.full_name = body.full_name
     college.short_name = body.short_name
     saveState(state)
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: college }
   }
 
@@ -227,6 +241,7 @@ function handlePut(state, url, body) {
     sport.icon = body.icon
     sport.description = body.description
     saveState(state)
+    publishLiveEvent('matches-updated')
     return { status: 200, data: sport }
   }
 
@@ -244,6 +259,8 @@ function handlePut(state, url, body) {
     match.venue = body.venue || match.venue
     match.status = body.status || match.status
     saveState(state)
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: withTeamNames(state, match) }
   }
 
@@ -257,6 +274,8 @@ function handleDelete(state, url) {
     const id = Number(path.split('/').pop())
     state.colleges = state.colleges.filter(item => Number(item.id) !== id)
     saveState(state)
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: { success: true } }
   }
 
@@ -264,6 +283,7 @@ function handleDelete(state, url) {
     const id = path.split('/').pop()
     state.sports = state.sports.filter(item => String(item.id) !== String(id))
     saveState(state)
+    publishLiveEvent('matches-updated')
     return { status: 200, data: { success: true } }
   }
 
@@ -271,6 +291,8 @@ function handleDelete(state, url) {
     const id = Number(path.split('/').pop())
     state.matches = state.matches.filter(item => Number(item.id) !== id)
     saveState(state)
+    publishLiveEvent('matches-updated')
+    publishLiveEvent('leaderboard-update')
     return { status: 200, data: { success: true } }
   }
 

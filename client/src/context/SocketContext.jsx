@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { getItem, setItem, removeItem } from '../lib/safeStorage.js'
+import { createMockSocket } from '../lib/liveBus.js'
 
 let io = null
 try {
@@ -26,7 +27,18 @@ export const SocketProvider = ({ children }) => {
     // Only initialize Socket if io is available 
     if (!io) {
       console.warn('Socket.io-client not available - running in offline mode')
-      return
+      const mockSocket = createMockSocket()
+      socketRef.current = mockSocket
+      setSocket(mockSocket)
+      setIsConnected(true)
+
+      return () => {
+        try {
+          mockSocket.disconnect()
+        } catch (e) {
+          console.warn('Error disconnecting mock socket:', e.message)
+        }
+      }
     }
 
     try {
@@ -79,7 +91,9 @@ export const SocketProvider = ({ children }) => {
     const s = socketRef.current
     s.auth = { token: adminToken || null }
     // Force reconnect so the server re-runs the auth middleware
-    s.disconnect().connect()
+    if (typeof s.disconnect === 'function' && typeof s.connect === 'function') {
+      s.disconnect().connect()
+    }
   }, [adminToken])
 
   const authenticateAdmin = useCallback((token) => {
