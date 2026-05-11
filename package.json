@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "description": "QUADRA 5.0 - Intercollegiate Sports Tournament Management System",
   "scripts": {
-    "build": "npm --prefix client install && npm --prefix client run build && cp -r client/dist/* .",
+    "start": "node server-static.js",
+    "build": "cd client && npm install && npm run build && cd .. && rm -rf public && cp -r client/dist public",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "node server.js",
     "client": "cd client && npm run dev"
   },
   "private": true,
+  "dependencies": {
+    "express": "^4.18.2"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
 }
+
 
