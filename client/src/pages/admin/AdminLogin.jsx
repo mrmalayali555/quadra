@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useSocket } from '../../context/SocketContext'
+import WatermarkFooter from '../../components/WatermarkFooter'
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('')
@@ -67,6 +68,8 @@ export default function AdminLogin() {
         <p className="mt-6 text-center text-xs t-faint">
           Government Medical College Alappuzha
         </p>
+
+        <WatermarkFooter />
       </div>
     </div>
   )

@@ -4,6 +4,7 @@ import axios from 'axios'
 import { format } from 'date-fns'
 import { useSocket } from '../../context/SocketContext'
 import AdminHeader from '../../components/AdminHeader'
+import WatermarkFooter from '../../components/WatermarkFooter'
 
 const statusOptions = [
   { value: 'upcoming', label: 'Upcoming', color: 'bg-blue-600' },
@@ -394,6 +395,8 @@ export default function AdminMatches() {
             </div>
           </div>
         )}
+
+        <WatermarkFooter />
       </div>
     </div>
   )

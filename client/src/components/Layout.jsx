@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
+import WatermarkFooter from './WatermarkFooter'
 
 function ThemeToggle() {
   const { dark, toggle } = useTheme()
@@ -163,6 +164,7 @@ export default function Layout({ children }) {
           <div className="mt-8 pt-6 text-center" style={{ borderTop: '1px solid var(--border)' }}>
             <p className="text-xs t-faint">© 2026 QUADRA 5.0 • SATTVA College Union • Government Medical College Alappuzha</p>
           </div>
+          <WatermarkFooter />
         </div>
       </footer>
     </div>

@@ -17,11 +17,10 @@ const io = new Server(server, {
 })
 
 const PORT = process.env.PORT || 3001
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@2005'
 
-if (!ADMIN_PASSWORD) {
-  console.error('❌  ADMIN_PASSWORD is not set in .env — refusing to start')
-  process.exit(1)
+if (!process.env.ADMIN_PASSWORD) {
+  console.warn('⚠️  ADMIN_PASSWORD is not set in .env — using default admin@2005')
 }
 
 // ── Rate limiter (in-memory, per IP) ────────────────────────

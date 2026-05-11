@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useSocket } from '../../context/SocketContext'
 import AdminHeader from '../../components/AdminHeader'
+import WatermarkFooter from '../../components/WatermarkFooter'
 
 const EMOJI_SUGGESTIONS = ['⚽','🏏','🏀','🏸','🏐','🏃','🏓','♟️','🥊','🏊','🎾','🏋️','🤸','🏑','🏒','🥋','🎯','🏹']
 
@@ -194,6 +195,8 @@ export default function AdminSports() {
             )}
           </div>
         )}
+
+        <WatermarkFooter />
       </div>
     </div>
   )

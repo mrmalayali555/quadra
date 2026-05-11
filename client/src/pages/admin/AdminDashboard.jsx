@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useSocket } from '../../context/SocketContext'
+import WatermarkFooter from '../../components/WatermarkFooter'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -139,6 +140,8 @@ export default function AdminDashboard() {
             </div>
           </a>
         </div>
+
+        <WatermarkFooter />
       </div>
     </div>
   )

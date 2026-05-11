@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useSocket } from '../../context/SocketContext'
 import AdminHeader from '../../components/AdminHeader'
+import WatermarkFooter from '../../components/WatermarkFooter'
 
 const sportIcons = {
   football: '⚽',
@@ -286,6 +287,8 @@ export default function AdminLiveScore() {
             : <span className="text-yellow-400">● Connecting…</span>
           }
         </div>
+
+        <WatermarkFooter />
       </div>
     </div>
   )

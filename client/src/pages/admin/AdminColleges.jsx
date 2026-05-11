@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useSocket } from '../../context/SocketContext'
 import AdminHeader from '../../components/AdminHeader'
+import WatermarkFooter from '../../components/WatermarkFooter'
 
 export default function AdminColleges() {
   const navigate = useNavigate()
@@ -222,6 +223,8 @@ export default function AdminColleges() {
             </div>
           </div>
         )}
+
+        <WatermarkFooter />
       </div>
     </div>
   )
