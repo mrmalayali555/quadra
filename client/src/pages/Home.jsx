@@ -31,25 +31,33 @@ export default function Home() {
   /* ── Vanta NET (runs in both modes, bg matches theme) ── */
   useEffect(() => {
     const init = () => {
-      if (!window.VANTA || !window.THREE || !heroRef.current || vantaRef.current) return
-      vantaRef.current = window.VANTA.NET({
-        el: heroRef.current,
-        THREE: window.THREE,
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        minHeight: 200, minWidth: 200,
-        scale: 1.0, scaleMobile: 1.0,
-        color: dark ? 0x00e5ff : 0x38bdf8,
-        backgroundColor: dark ? 0x05050f : 0x0f1729,
-        points: 14, maxDistance: 22, spacing: 18,
-      })
+      try {
+        if (!window.VANTA || !window.THREE || !heroRef.current || vantaRef.current) return
+        vantaRef.current = window.VANTA.NET({
+          el: heroRef.current,
+          THREE: window.THREE,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200, minWidth: 200,
+          scale: 1.0, scaleMobile: 1.0,
+          color: dark ? 0x00e5ff : 0x38bdf8,
+          backgroundColor: dark ? 0x05050f : 0x0f1729,
+          points: 14, maxDistance: 22, spacing: 18,
+        })
+      } catch (e) {
+        console.warn('Vanta NET initialization failed:', e.message)
+      }
     }
     init()
     const t = setTimeout(init, 600)
     return () => {
       clearTimeout(t)
-      if (vantaRef.current) { vantaRef.current.destroy(); vantaRef.current = null }
+      try {
+        if (vantaRef.current) { vantaRef.current.destroy(); vantaRef.current = null }
+      } catch (e) {
+        console.warn('Error destroying Vanta:', e.message)
+      }
     }
   }, [dark])
 

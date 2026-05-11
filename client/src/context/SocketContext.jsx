@@ -18,36 +18,45 @@ export const SocketProvider = ({ children }) => {
   const socketRef = useRef(null)
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken')
-    const newSocket = io(window.location.origin, {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 3
-    })
+    try {
+      const token = localStorage.getItem('adminToken')
+      const newSocket = io(window.location.origin, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 3
+      })
 
-    newSocket.on('connect', () => {
-      console.log('Socket connected:', newSocket.id)
-      setIsConnected(true)
-    })
+      newSocket.on('connect', () => {
+        console.log('Socket connected:', newSocket.id)
+        setIsConnected(true)
+      })
 
-    newSocket.on('disconnect', () => {
-      console.log('Socket disconnected')
+      newSocket.on('disconnect', () => {
+        console.log('Socket disconnected')
+        setIsConnected(false)
+      })
+
+      newSocket.on('connect_error', (error) => {
+        console.warn('Socket connection error:', error.message)
+        setIsConnected(false)
+      })
+
+      socketRef.current = newSocket
+      setSocket(newSocket)
+
+      return () => {
+        try {
+          newSocket.close()
+        } catch (e) {
+          console.warn('Error closing socket:', e.message)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to initialize Socket.io:', e.message)
       setIsConnected(false)
-    })
-
-    newSocket.on('connect_error', (error) => {
-      console.warn('Socket connection error:', error.message)
-      setIsConnected(false)
-    })
-
-    socketRef.current = newSocket
-    setSocket(newSocket)
-
-    return () => {
-      newSocket.close()
     }
   }, []) // run once on mount
 
