@@ -2,11 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "client/api/**/*.js",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     },
     {
-      "src": "client/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
@@ -16,14 +16,14 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/client/api/$1"
+      "dest": "/api/$1"
     },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/dist/index.html"
+      "dest": "/index.html"
     }
   ]
 }
