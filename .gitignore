@@ -38,3 +38,5 @@ Thumbs.db
 *.png
 !logo.png
 !5.0.png
+.vercel
+.env*.local

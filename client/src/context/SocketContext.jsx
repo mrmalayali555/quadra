@@ -21,7 +21,11 @@ export const SocketProvider = ({ children }) => {
     const token = localStorage.getItem('adminToken')
     const newSocket = io(window.location.origin, {
       auth: { token },
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 3
     })
 
     newSocket.on('connect', () => {
@@ -35,7 +39,8 @@ export const SocketProvider = ({ children }) => {
     })
 
     newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error)
+      console.warn('Socket connection error:', error.message)
+      setIsConnected(false)
     })
 
     socketRef.current = newSocket

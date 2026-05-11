@@ -57,14 +57,16 @@ export default function Home() {
   const fetchData = async () => {
     try {
       const [lb, live, sp] = await Promise.all([
-        axios.get('/api/leaderboard/overall'),
-        axios.get('/api/matches?status=live'),
-        axios.get('/api/sports'),
+        axios.get('/api/leaderboard/overall').catch(() => ({ data: [] })),
+        axios.get('/api/matches?status=live').catch(() => ({ data: [] })),
+        axios.get('/api/sports').catch(() => ({ data: [] })),
       ])
-      setLeaderboard(lb.data.slice(0, 5))
-      setLiveMatches(live.data)
-      setSports(sp.data)
-    } catch (e) { console.error(e) }
+      setLeaderboard((lb.data || []).slice(0, 5))
+      setLiveMatches(live.data || [])
+      setSports(sp.data || [])
+    } catch (e) { 
+      console.warn('Failed to fetch data:', e.message)
+    }
     finally { setLoading(false) }
   }
 
@@ -74,7 +76,14 @@ export default function Home() {
     if (!socket) return
     const onScore    = (m) => setLiveMatches(p => p.map(x => x.id === m.id ? { ...x, ...m } : x))
     const onRefresh  = () => fetchData()
-    const onLb       = async () => { try { const r = await axios.get('/api/leaderboard/overall'); setLeaderboard(r.data.slice(0,5)) } catch {} }
+    const onLb       = async () => { 
+      try { 
+        const r = await axios.get('/api/leaderboard/overall')
+        setLeaderboard((r.data || []).slice(0, 5))
+      } catch (e) {
+        console.warn('Leaderboard update failed:', e.message)
+      }
+    }
     socket.on('score-updated',    onScore)
     socket.on('status-updated',   onRefresh)
     socket.on('matches-updated',  onRefresh)
