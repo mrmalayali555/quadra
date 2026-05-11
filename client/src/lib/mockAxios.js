@@ -5,7 +5,8 @@ import { readData, writeData, subscribe, startPolling } from '../services/jsonbi
 
 const defaults = { timeout: 0 }
 let cachedState = null
-let statePromise = null
+let isInitialized = false
+let initPromise = null
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value))
@@ -15,53 +16,91 @@ function getInitialState() {
   return cloneSeedData()
 }
 
-async function readState() {
-  try {
-    // Try to read from JSONBin
-    console.log('📖 Fetching data from JSONBin...')
-    const data = await readData()
-    if (data && data.colleges && data.sports && data.matches) {
-      cachedState = {
-        colleges: Array.isArray(data.colleges) ? data.colleges : getInitialState().colleges,
-        sports: Array.isArray(data.sports) ? data.sports : getInitialState().sports,
-        matches: Array.isArray(data.matches) ? data.matches : getInitialState().matches,
-        sessions: Array.isArray(data.sessions) ? data.sessions : [],
+async function initializeState() {
+  if (isInitialized) return cachedState
+  if (initPromise) return initPromise
+  
+  initPromise = (async () => {
+    try {
+      console.log('🔄 Initializing state from JSONBin...')
+      const data = await readData()
+      
+      if (data && data.colleges && data.sports && data.matches) {
+        cachedState = {
+          colleges: Array.isArray(data.colleges) ? data.colleges : getInitialState().colleges,
+          sports: Array.isArray(data.sports) ? data.sports : getInitialState().sports,
+          matches: Array.isArray(data.matches) ? data.matches : getInitialState().matches,
+          sessions: Array.isArray(data.sessions) ? data.sessions : [],
+        }
+        console.log('✅ State initialized from JSONBin:', { sports: cachedState.sports.length, matches: cachedState.matches.length })
+      } else {
+        console.log('⚠️ JSONBin empty, using seed data')
+        cachedState = getInitialState()
       }
-      console.log('✅ State loaded from cloud:', { sports: cachedState.sports.length, matches: cachedState.matches.length })
-      return cachedState
-    } else {
-      console.log('❌ JSONBin data incomplete, falling back to cache')
+    } catch (error) {
+      console.error('❌ Failed to initialize from JSONBin:', error.message)
+      cachedState = getInitialState()
     }
-  } catch (error) {
-    console.warn('⚠️ JSONBin read failed, using cache:', error.message)
+    
+    isInitialized = true
+    return cachedState
+  })()
+  
+  return initPromise
+}
+
+async function readState() {
+  // Always start with initialized cache
+  if (!isInitialized) {
+    await initializeState()
   }
   
-  // Return cached state or initial state
-  if (cachedState) {
-    console.log('📦 Using cached state')
-    return cachedState
+  try {
+    // Try to fetch latest from cloud
+    console.log('📖 Fetching latest data from JSONBin...')
+    const data = await readData()
+    
+    if (data && data.colleges && data.sports && data.matches) {
+      cachedState = {
+        colleges: Array.isArray(data.colleges) ? data.colleges : cachedState?.colleges || getInitialState().colleges,
+        sports: Array.isArray(data.sports) ? data.sports : cachedState?.sports || getInitialState().sports,
+        matches: Array.isArray(data.matches) ? data.matches : cachedState?.matches || getInitialState().matches,
+        sessions: Array.isArray(data.sessions) ? data.sessions : [],
+      }
+      console.log('✅ Updated cache from cloud')
+      return cachedState
+    }
+  } catch (error) {
+    console.warn('⚠️ Cloud fetch failed, using cache:', error.message)
   }
-  console.log('🌱 Using seed data (no cache)')
-  return getInitialState()
+  
+  return cachedState || getInitialState()
 }
 
 async function saveState(state) {
   try {
+    // Update cache immediately
+    cachedState = clone(state)
+    
     const dataToSave = {
       colleges: state.colleges || [],
       sports: state.sports || [],
       matches: state.matches || [],
       sessions: state.sessions || [],
     }
-    console.log('💾 Saving to JSONBin:', { sports: dataToSave.sports.length })
-    await writeData(dataToSave)
-    console.log('✔️ Save complete')
-    cachedState = state
-    // Broadcast so polling detects the change
+    
+    console.log('💾 Saving to JSONBin:', { sports: dataToSave.sports.length, matches: dataToSave.matches.length })
+    const result = await writeData(dataToSave)
+    console.log('✔️ Save to JSONBin successful!')
+    
+    // Broadcast so other pages/devices detect change
     publishLiveEvent('data-updated', dataToSave)
+    
+    return result
   } catch (error) {
-    console.error('❌ Failed to save state to JSONBin:', error.message)
-    // State is still cached locally, will retry on next save
+    console.error('❌ SAVE FAILED:', error.message)
+    // Data is still in cache, but cloud wasn't updated
+    throw error
   }
 }
 
@@ -363,7 +402,13 @@ const axiosLike = {
   delete: (url) => request('DELETE', url),
 }
 
-// Start polling data in the background so changes are synced every 5 seconds
-startPolling(5000)
+// Initialize state from JSONBin and start polling for cross-device sync
+initializeState().then(() => {
+  console.log('🚀 mockAxios initialized, starting polling...')
+  startPolling(5000)
+}).catch(err => {
+  console.error('Failed to initialize:', err)
+  startPolling(5000) // Still start polling even if init failed
+})
 
 export default axiosLike
