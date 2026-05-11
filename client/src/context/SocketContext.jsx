@@ -92,8 +92,7 @@ export const SocketProvider = ({ children }) => {
     s.auth = { token: adminToken || null }
     // Force reconnect so the server re-runs the auth middleware
     if (typeof s.disconnect === 'function' && typeof s.connect === 'function') {
-      s.disconnect()
-      s.connect()
+      s.disconnect().connect()
     }
   }, [adminToken])
 

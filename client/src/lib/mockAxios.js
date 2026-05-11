@@ -1,9 +1,11 @@
 import { ADMIN_PASSWORD, buildLeaderboard, cloneSeedData } from '../data/seedData.js'
 import { getItem, setItem, removeItem } from './safeStorage.js'
 import { publishLiveEvent } from './liveBus.js'
+import { readData, writeData, subscribe, startPolling } from '../services/jsonbinApi.js'
 
-const STORAGE_KEY = 'quadra.mock.db.v1'
 const defaults = { timeout: 0 }
+let cachedState = null
+let statePromise = null
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value))
@@ -13,24 +15,41 @@ function getInitialState() {
   return cloneSeedData()
 }
 
-function readState() {
+async function readState() {
   try {
-    const raw = getItem(STORAGE_KEY)
-    if (!raw) return getInitialState()
-    const parsed = JSON.parse(raw)
-    return {
-      colleges: Array.isArray(parsed.colleges) ? parsed.colleges : getInitialState().colleges,
-      sports: Array.isArray(parsed.sports) ? parsed.sports : getInitialState().sports,
-      matches: Array.isArray(parsed.matches) ? parsed.matches : getInitialState().matches,
-      sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+    // Try to read from JSONBin
+    const data = await readData()
+    if (data.colleges && data.sports && data.matches) {
+      cachedState = {
+        colleges: Array.isArray(data.colleges) ? data.colleges : getInitialState().colleges,
+        sports: Array.isArray(data.sports) ? data.sports : getInitialState().sports,
+        matches: Array.isArray(data.matches) ? data.matches : getInitialState().matches,
+        sessions: Array.isArray(data.sessions) ? data.sessions : [],
+      }
+      return cachedState
     }
-  } catch {
-    return getInitialState()
+  } catch (error) {
+    console.warn('JSONBin read failed, using cache:', error.message)
   }
+  
+  // Return cached state or initial state
+  return cachedState || getInitialState()
 }
 
-function saveState(state) {
-  setItem(STORAGE_KEY, JSON.stringify(state))
+async function saveState(state) {
+  try {
+    const dataToSave = {
+      colleges: state.colleges || [],
+      sports: state.sports || [],
+      matches: state.matches || [],
+      sessions: state.sessions || [],
+    }
+    await writeData(dataToSave)
+    cachedState = state
+  } catch (error) {
+    console.error('Failed to save state to JSONBin:', error)
+    // State is still cached locally, will retry on next save
+  }
 }
 
 function makeError(status, message) {
@@ -118,7 +137,7 @@ function handleGet(state, url) {
   return { status: 404, data: { error: 'Not found' } }
 }
 
-function handlePost(state, url, body) {
+async function handlePost(state, url, body) {
   const path = new URL(url, 'https://quadra.local').pathname
 
   if (path === '/api/admin/login') {
@@ -126,7 +145,7 @@ function handlePost(state, url, body) {
       const token = `mock-admin-${Date.now()}-${Math.random().toString(16).slice(2)}`
       state.sessions.push(token)
       setItem('adminToken', token)
-      saveState(state)
+      await saveState(state)
       return { status: 200, data: { token, success: true } }
     }
     throw makeError(401, 'Invalid password')
@@ -134,7 +153,7 @@ function handlePost(state, url, body) {
 
   if (path === '/api/admin/logout') {
     removeItem('adminToken')
-    saveState(state)
+    await saveState(state)
     return { status: 200, data: { success: true } }
   }
 
@@ -145,7 +164,7 @@ function handlePost(state, url, body) {
       short_name: body.short_name,
     }
     state.colleges.push(college)
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: college }
   }
@@ -159,7 +178,7 @@ function handlePost(state, url, body) {
       sort_order: state.sports.reduce((max, item) => Math.max(max, Number(item.sort_order) || 0), 0) + 1,
     }
     state.sports.push(sport)
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: sport }
@@ -183,7 +202,7 @@ function handlePost(state, url, body) {
       extra_data: body.extra_data || {},
     }
     state.matches.push(match)
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: withTeamNames(state, match) }
@@ -195,7 +214,7 @@ function handlePost(state, url, body) {
     if (!match) throw makeError(404, 'Match not found')
     match.score_a = Number(body.score_a || 0)
     match.score_b = Number(body.score_b || 0)
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('score-updated', withTeamNames(state, match))
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
@@ -208,7 +227,7 @@ function handlePost(state, url, body) {
     if (!match) throw makeError(404, 'Match not found')
     match.status = body.status || match.status
     match.winner_id = body.winner_id ?? null
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('status-updated', withTeamNames(state, match))
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
@@ -218,7 +237,7 @@ function handlePost(state, url, body) {
   throw makeError(404, 'Not found')
 }
 
-function handlePut(state, url, body) {
+async function handlePut(state, url, body) {
   const path = new URL(url, 'https://quadra.local').pathname
 
   if (/^\/api\/colleges\/\d+$/.test(path)) {
@@ -227,7 +246,7 @@ function handlePut(state, url, body) {
     if (!college) throw makeError(404, 'College not found')
     college.full_name = body.full_name
     college.short_name = body.short_name
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: college }
@@ -240,7 +259,7 @@ function handlePut(state, url, body) {
     sport.name = body.name
     sport.icon = body.icon
     sport.description = body.description
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     return { status: 200, data: sport }
   }
@@ -258,7 +277,7 @@ function handlePut(state, url, body) {
     match.scheduled_time = body.scheduled_time || match.scheduled_time
     match.venue = body.venue || match.venue
     match.status = body.status || match.status
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: withTeamNames(state, match) }
@@ -267,13 +286,13 @@ function handlePut(state, url, body) {
   throw makeError(404, 'Not found')
 }
 
-function handleDelete(state, url) {
+async function handleDelete(state, url) {
   const path = new URL(url, 'https://quadra.local').pathname
 
   if (/^\/api\/colleges\/\d+$/.test(path)) {
     const id = Number(path.split('/').pop())
     state.colleges = state.colleges.filter(item => Number(item.id) !== id)
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: { success: true } }
@@ -282,7 +301,7 @@ function handleDelete(state, url) {
   if (/^\/api\/sports\/[^/]+$/.test(path)) {
     const id = path.split('/').pop()
     state.sports = state.sports.filter(item => String(item.id) !== String(id))
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     return { status: 200, data: { success: true } }
   }
@@ -290,7 +309,7 @@ function handleDelete(state, url) {
   if (/^\/api\/matches\/\d+$/.test(path)) {
     const id = Number(path.split('/').pop())
     state.matches = state.matches.filter(item => Number(item.id) !== id)
-    saveState(state)
+    await saveState(state)
     publishLiveEvent('matches-updated')
     publishLiveEvent('leaderboard-update')
     return { status: 200, data: { success: true } }
@@ -300,13 +319,22 @@ function handleDelete(state, url) {
 }
 
 async function request(method, url, body) {
-  const state = normalizeState(readState())
+  const state = normalizeState(await readState())
 
   try {
     if (method === 'GET') return { data: handleGet(state, url).data }
-    if (method === 'POST') return { data: handlePost(state, url, body).data }
-    if (method === 'PUT') return { data: handlePut(state, url, body).data }
-    if (method === 'DELETE') return { data: handleDelete(state, url).data }
+    if (method === 'POST') {
+      const result = await handlePost(state, url, body)
+      return { data: result.data }
+    }
+    if (method === 'PUT') {
+      const result = await handlePut(state, url, body)
+      return { data: result.data }
+    }
+    if (method === 'DELETE') {
+      const result = await handleDelete(state, url)
+      return { data: result.data }
+    }
     throw makeError(405, 'Method not allowed')
   } catch (error) {
     if (error.response) throw error
@@ -321,5 +349,8 @@ const axiosLike = {
   put: (url, body) => request('PUT', url, body),
   delete: (url) => request('DELETE', url),
 }
+
+// Start polling data in the background so changes are synced every 5 seconds
+startPolling(5000)
 
 export default axiosLike
