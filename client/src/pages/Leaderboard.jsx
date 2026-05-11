@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
+import { useDataSync } from '../hooks/useDataSync'
 
 const asArray = (value) => (Array.isArray(value) ? value : [])
 
@@ -9,9 +10,7 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true)
   const [selectedGender, setSelectedGender] = useState('all')
 
-  useEffect(() => { fetchLeaderboard() }, [selectedGender])
-
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     setLoading(true)
     try {
       const endpoint = selectedGender === 'all'
@@ -21,7 +20,12 @@ export default function Leaderboard() {
       setLeaderboard(asArray(res.data))
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }
+  }, [selectedGender])
+
+  useEffect(() => { fetchLeaderboard() }, [fetchLeaderboard])
+
+  // Auto-sync when data changes on other devices
+  useDataSync(fetchLeaderboard)
 
   const FILTERS = [
     { key: 'all',   label: 'Overall' },

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import axios from 'axios'
 import { useSocket } from '../context/SocketContext'
 import { useTheme } from '../context/ThemeContext'
+import { useDataSync } from '../hooks/useDataSync'
 
 const SPORT_COLORS = [
   'from-cyan-500 to-blue-600',
@@ -64,7 +65,7 @@ export default function Home() {
   }, [dark])
 
   /* ── Data ── */
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [lb, live, sp] = await Promise.all([
         axios.get('/api/leaderboard/overall').catch(() => ({ data: [] })),
@@ -78,9 +79,12 @@ export default function Home() {
       console.warn('Failed to fetch data:', e.message)
     }
     finally { setLoading(false) }
-  }
+  }, [])
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // Auto-sync when data changes on other devices
+  useDataSync(fetchData)
 
   useEffect(() => {
     if (!socket) return
@@ -104,7 +108,7 @@ export default function Home() {
       socket.off('matches-updated',  onRefresh)
       socket.off('leaderboard-update', onLb)
     }
-  }, [socket])
+  }, [socket, fetchData])
 
   return (
     <div className="min-h-screen">

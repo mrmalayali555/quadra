@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { format } from 'date-fns'
 import { useSocket } from '../context/SocketContext'
+import { useDataSync } from '../hooks/useDataSync'
 
 const SPORT_COLORS = [
   'from-green-500 to-emerald-600', 'from-blue-500 to-indigo-600',
@@ -25,9 +26,19 @@ function SportsHub() {
   const [sports, setSports] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    axios.get('/api/sports').then(r => setSports(asArray(r.data))).finally(() => setLoading(false))
+  const fetchSports = useCallback(async () => {
+    try {
+      const r = await axios.get('/api/sports')
+      setSports(asArray(r.data))
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => { fetchSports() }, [fetchSports])
+
+  // Auto-sync when data changes on other devices
+  useDataSync(fetchSports)
 
   return (
     <div className="min-h-screen py-10 px-4">
@@ -71,13 +82,13 @@ function SportDetail({ sportId }) {
   const [loading, setLoading] = useState(true)
   const [sport, setSport] = useState(null)
 
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       const res = await axios.get(`/api/matches?sport=${sportId}`)
       setMatches(asArray(res.data))
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }
+  }, [sportId])
 
   useEffect(() => {
     setLoading(true)
@@ -86,7 +97,10 @@ function SportDetail({ sportId }) {
       setSport(sportsData.find(s => s.id === sportId) || null)
     })
     fetchMatches()
-  }, [sportId])
+  }, [sportId, fetchMatches])
+
+  // Auto-sync when data changes on other devices
+  useDataSync(fetchMatches)
 
   useEffect(() => {
     if (!socket) return
@@ -97,7 +111,7 @@ function SportDetail({ sportId }) {
     socket.on('score-updated', onScore)
     socket.on('matches-updated', onRefresh)
     return () => { socket.off('score-updated', onScore); socket.off('matches-updated', onRefresh) }
-  }, [socket, sportId])
+  }, [socket, sportId, fetchMatches])
 
   const filteredMatches = matches.filter(m => m.gender === activeTab)
 

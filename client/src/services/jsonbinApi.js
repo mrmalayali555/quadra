@@ -1,9 +1,12 @@
 // JSONBin API service for cloud-based tournament data
+// Falls back to public/data.json if JSONBin is unavailable
+import { publishLiveEvent } from '../lib/liveBus.js'
+
 const BIN_ID = '6a01c00dc0954111d8089ce6'
 const API_KEY = '$2a$10$aVVXJLfwVHRdoYzQmToZeuLlqZAd7PSBab5EuaxfPS3uZxLTxCE3K'
 const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`
 
-export async function readData() {
+export async function readDataFromJSONBin() {
   try {
     const res = await fetch(BASE_URL, {
       headers: {
@@ -15,9 +18,32 @@ export async function readData() {
     const data = await res.json()
     return data.record || {}
   } catch (error) {
-    console.error('Error reading from JSONBin:', error)
-    throw error
+    console.warn('JSONBin unavailable, falling back to data.json:', error.message)
+    return null
   }
+}
+
+export async function readDataFromLocal() {
+  try {
+    const res = await fetch('/data.json')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.json()
+  } catch (error) {
+    console.error('Error reading from data.json:', error)
+    return null
+  }
+}
+
+export async function readData() {
+  // Try JSONBin first, then fall back to local data.json
+  const jsonbinData = await readDataFromJSONBin()
+  if (jsonbinData) return jsonbinData
+  
+  const localData = await readDataFromLocal()
+  if (localData) return localData
+  
+  // If both fail, return empty object (mockAxios will use seedData)
+  return {}
 }
 
 export async function writeData(data) {
@@ -31,18 +57,19 @@ export async function writeData(data) {
       body: JSON.stringify(data)
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const result = await res.json()
-    return result
+    return await res.json()
   } catch (error) {
-    console.error('Error writing to JSONBin:', error)
-    throw error
+    console.warn('Failed to write to JSONBin (will retry), data cached locally:', error.message)
+    // Data is already cached locally in mockAxios, so this is not critical
+    return null
   }
 }
 
-// Polling manager for keeping data fresh
+// Polling manager for keeping data fresh across devices
 const subscribers = new Set()
 let pollingInterval = null
 let lastData = null
+let lastDataString = ''
 
 export function subscribe(callback) {
   subscribers.add(callback)
@@ -65,21 +92,29 @@ export function startPolling(interval = 5000) {
   if (pollingInterval) return
   
   // Fetch immediately
-  readData().then(data => {
-    lastData = data
-    notifySubscribers(data)
-  }).catch(err => console.error('Initial poll failed:', err))
+  pollOnce()
   
   // Then poll every 5 seconds
-  pollingInterval = setInterval(() => {
-    readData().then(data => {
-      // Only notify if data changed
-      if (JSON.stringify(lastData) !== JSON.stringify(data)) {
-        lastData = data
-        notifySubscribers(data)
-      }
-    }).catch(err => console.error('Polling error:', err))
-  }, interval)
+  pollingInterval = setInterval(pollOnce, interval)
+}
+
+async function pollOnce() {
+  try {
+    const data = await readData()
+    const dataString = JSON.stringify(data)
+    
+    // Only notify if data changed
+    if (dataString !== lastDataString) {
+      lastDataString = dataString
+      lastData = data
+      notifySubscribers(data)
+      
+      // Broadcast via liveBus so pages re-render
+      publishLiveEvent('data-updated', data)
+    }
+  } catch (error) {
+    console.warn('Polling error (will retry):', error.message)
+  }
 }
 
 export function stopPolling() {

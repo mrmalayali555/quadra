@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import { format } from 'date-fns'
 import { useSocket } from '../context/SocketContext'
+import { useDataSync } from '../hooks/useDataSync'
 
 const sportIcons = {
   football: '⚽', cricket: '🏏', basketball: '🏀', badminton: '🏸',
@@ -15,15 +16,18 @@ export default function MatchDetail() {
   const [match, setMatch] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchMatch = async () => {
+  const fetchMatch = useCallback(async () => {
     try {
       const res = await axios.get(`/api/matches/${id}`)
       setMatch(res.data)
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }
+  }, [id])
 
-  useEffect(() => { fetchMatch() }, [id])
+  useEffect(() => { fetchMatch() }, [fetchMatch])
+
+  // Auto-sync when data changes on other devices
+  useDataSync(fetchMatch)
 
   useEffect(() => {
     if (!socket) return
