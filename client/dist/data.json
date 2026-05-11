@@ -1,0 +1,27 @@
+{
+  "colleges": [
+    { "id": 1, "name": "GMC Alappuzha", "short_name": "GMCAL" },
+    { "id": 2, "name": "Amrita Vishwa Vidyapeetham", "short_name": "AMRI" },
+    { "id": 3, "name": "Rajagiri College", "short_name": "RAJI" },
+    { "id": 4, "name": "Maharajas College", "short_name": "MAHA" },
+    { "id": 5, "name": "St. Teresa's College", "short_name": "STER" },
+    { "id": 6, "name": "Christuraj College", "short_name": "CHRI" },
+    { "id": 7, "name": "Mar Athanasius College", "short_name": "MATA" },
+    { "id": 8, "name": "Baselius College", "short_name": "BASE" }
+  ],
+  "sports": [
+    { "id": 1, "name": "Football", "icon": "⚽" },
+    { "id": 2, "name": "Basketball", "icon": "🏀" },
+    { "id": 3, "name": "Volleyball", "icon": "🏐" },
+    { "id": 4, "name": "Badminton", "icon": "🏸" },
+    { "id": 5, "name": "Tennis", "icon": "🎾" },
+    { "id": 6, "name": "Chess", "icon": "♟️" },
+    { "id": 7, "name": "Throwball", "icon": "🎯" },
+    { "id": 8, "name": "Cricket", "icon": "🏏" }
+  ],
+  "matches": [
+    { "id": 1, "sport": "Football", "gender": "men", "team_a_id": 1, "team_b_id": 2, "team_a_score": 2, "team_b_score": 1, "status": "completed", "scheduled_time": "2026-05-10T10:00:00" },
+    { "id": 2, "sport": "Basketball", "gender": "women", "team_a_id": 3, "team_b_id": 4, "team_a_score": 0, "team_b_score": 0, "status": "live", "scheduled_time": "2026-05-11T14:00:00" },
+    { "id": 3, "sport": "Volleyball", "gender": "mixed", "team_a_id": 5, "team_b_id": 6, "team_a_score": 0, "team_b_score": 0, "status": "upcoming", "scheduled_time": "2026-05-12T09:00:00" }
+  ]
+}

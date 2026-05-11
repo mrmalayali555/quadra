@@ -13,7 +13,6 @@ tournament.db
 *.sqlite
 
 # Build output
-client/dist/
 client/build/
 
 # IDE / editor
