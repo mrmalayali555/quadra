@@ -1,21 +1,17 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const path = require('path');
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
-// Serve static files from public folder
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Serve static files from public folder (one level up)
+const publicPath = path.join(__dirname, '..', 'public');
+app.use(express.static(publicPath));
 
-// API routes
-app.get('/api/data', async (req, res) => {
-  res.status(200).json({ message: 'API works' });
-});
-
-// Fallback to index.html for SPA routing
+// Serve index.html for all non-asset routes (SPA routing)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  const indexPath = path.join(publicPath, 'index.html');
+  res.sendFile(indexPath);
 });
 
-export default app;
+module.exports = app;
+
